@@ -2,12 +2,15 @@ var express     = require('express'),
 app             = express(),
 bodyParser      = require('body-parser'),
 mongoose        = require("mongoose"),
-http            = require('http');
+http            = require('http'),
+methodOverride   = require("method-override");
+
 //app config
 mongoose.connect("mongodb://localhost/veri_blog");
 app.set("view engine", "ejs");
 app.use(express.static("public"));
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(methodOverride("_method"));
 
 var blogSchema = new mongoose.Schema({
     title: String,
@@ -31,6 +34,8 @@ app.get("/", function(req, res){
     res.redirect("/blogs");
 })
 //restful Routes
+
+//index route
 app.get("/blogs", function(req,res){
     Blog.find({}, function(err, blogs){
         if(err){
@@ -41,8 +46,69 @@ app.get("/blogs", function(req,res){
         }
     });
 })
+// new route
+app.get("/blogs/new", function(req,res){
+    res.render("new");
+});
 
+//create Route
+app.post("/blogs", function(req, res){
+    Blog.create(req.body.blog, function(err, newBlog){
+        if(err){
+            res.render("new");
+        }
+        else{
+            res.redirect("/blogs");
+        }
+    });
+});
 
+//edit
+app.get("/blogs/:id/edit", function(req,res){
+    Blog.findById(req.params.id, function(err,foundBlog){
+        if(err){
+            console.log("Failed");
+        }else{
+            res.render("edit", {blog: foundBlog});
+        }
+    })
+    
+});
+
+//update 
+app.put("/blogs/:id", function(req,res){
+    Blog.findByIdAndUpdate(req.params.id, req.body.blog, function(err, updatedBlog){
+        if(err){
+            res.redirect("/blogs");
+        }
+        else{
+            res.redirect("/blogs/" + req.params.id);
+        }
+    });
+});
+
+//show Page
+app.get("/blogs/:id", function(req,res){
+    Blog.findById(req.params.id, function(err, foundBlog){
+        if(err){
+            res.redirect("/blogs");
+        }else{
+            res.render("show", {blog: foundBlog});
+        }
+    })
+});
+
+//delete route
+app.delete("/blogs/:id", function(req,res){
+    Blog.findByIdAndRemove(req.params.id, function(err, deletedBlog){
+        if(err){
+            console.log("Failed at deleting");
+        }
+        else{
+            res.redirect("/blogs");
+        }
+    })
+})
 
 /**
  * Get port from environment and store in Express.
